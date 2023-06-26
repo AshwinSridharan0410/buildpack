@@ -1,0 +1,31 @@
+version: 2.1
+
+orbs:
+  pack: buildpacks/pack@0.2
+workflows:
+  version: 2
+  main:
+    jobs:
+      - pack/build:
+          executor-image: ubuntu-2204:2023.04.2
+          working-directory: apps/java-maven
+          image-name: cnbs/circleci-sample
+          builder: 'cnbs/sample-builder:jammy'
+          version: '0.29.0'
+      - test:
+          requires:
+            - pack/build
+
+jobs:
+  test:
+    # load and run the created image
+    machine: true
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          command: |
+            docker load -i /tmp/workspace/images/image.tgz
+            docker run -d -p 8080:8080 cnbs/circleci-sample
+            sleep 40
+            curl -k localhost:8080
